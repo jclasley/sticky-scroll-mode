@@ -1,4 +1,4 @@
-;;; sticky-scroll-mode.el --- Sticky scrolling -*- lexical-binding: t; -*-
+;;; sticky-scroll-mode.el --- Sticky scrolling -*- dynamic-binding: t; -*-
 ;;
 ;; Copyright (C) 2024 Jon Lasley
 ;;
@@ -121,9 +121,9 @@ window at the top of the `sticky-scroll-mode' window."
 ;; BUG: doesn't work that well when moving back and forth between buffers
 ;; need to seriously reevaluate this, as it fucks up a lot of stuff
 (defun sticky-scroll--buffer-hook-func ()
-  "Check the sticky-scroll--buffer-alist to see if any of the parent buffers
-have been killed. At the same time, check if any non-killed buffers
- are no longer actively being shown. If so, bury their sticky buffers."
+  "Manage deleting the sticky window when its parent buffer is not live.
+Check the `sticky-scroll--buffer-alist' to see if any parents
+are not in a live window. If not, delete the sticky buffer."
   (dolist (cell sticky-scroll--buffer-alist)
     (let ((w (get-buffer-window (car cell))))
       (when (not (window-live-p w))
@@ -133,7 +133,9 @@ have been killed. At the same time, check if any non-killed buffers
           (kill-buffer-and-window))))))
 
 (defun sticky-scroll-popup (&optional count)
-  "Briefly show the sticky window relevant to the current position."
+  "Briefly show the sticky window relevant to the current position.
+If COUNT is provided, only show COUNT number of outer contexts, starting
+with the closest. Calling with `C-u N' sets COUNT to `N'."
   (interactive "p")
   (if sticky-scroll-mode
       (message "Sticky mode already enabled")
