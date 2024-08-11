@@ -19,7 +19,7 @@ then `C-u 2 sticky-scroll-popup` will only show
 ```
   B {
     C {
-    ```
+```
 
 ## Example
 ![sticky-mode-scroll](https://github.com/user-attachments/assets/43bf0c34-e7e5-4c64-b35d-6dc7eed98eab)
