@@ -5,8 +5,8 @@ If you'd prefer not to have a live sticky scroll window, and would rather have a
 `sticky-scroll-popup` to briefly show the outer, offscreen context.
 
 ## Example
+![sticky-mode-scroll](https://github.com/user-attachments/assets/43bf0c34-e7e5-4c64-b35d-6dc7eed98eab)
 
-<img width="834" alt="Screenshot 2024-08-10 at 10 26 02 PM" src="https://github.com/user-attachments/assets/b1606e65-3127-45f9-8904-e860d2df802c">
 
 ## Approach 
 
