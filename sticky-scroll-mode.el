@@ -23,12 +23,6 @@
 ;;  This package relies on `treesit' to parse the syntax tree.
 ;;
 ;;; Code:
-(eval-when-compile
-  (require 'treesit))
-
-(defvar sticky-scroll--last-line 0) ;; local var for lines
-(make-variable-buffer-local 'sticky-scroll--last-line)
-
 ;;;###autoload
 (define-minor-mode sticky-scroll-mode
   "Enable a live-reloading sticky scroll window.
@@ -48,6 +42,7 @@ window at the top of the `sticky-scroll-mode' window."
     (remove-hook 'post-command-hook #'sticky-scroll--should-rerun)
     (remove-hook 'buffer-list-update-hook #'sticky-scroll--buffer-hook-func)
     (remove-hook 'kill-buffer-hook #'sticky-scroll-close-buffer)))
+
 
 (defvar sticky-scroll--buffer-alist nil
   "An ALIST of buffers and their associated sticky buffers")
@@ -105,6 +100,9 @@ window at the top of the `sticky-scroll-mode' window."
            (preserve-size . (nil . t))
            (set-window-parameter . ((no-other-window . t)
                                     (no-delete-other-window . t)))))))))
+
+(defvar sticky-scroll--last-line 0) ;; local var for lines
+(make-variable-buffer-local 'sticky-scroll--last-line)
 
 (defun sticky-scroll--should-rerun ()
   "Only rerun if the new line is different from the last time we checked."
@@ -168,6 +166,7 @@ have been killed. At the same time, check if any non-killed buffers
   "The max lines to display in the sticky scroll window"
   :type 'integer)
 
+;; TODO: don't drop buffer when we are on an empty line inside valid context
 (defun sticky-scroll--collect-lines (&optional point start-indent content seen-levels)
   "Move backwards through the buffer, line by line,
 collecting the first line that has an indentation level
