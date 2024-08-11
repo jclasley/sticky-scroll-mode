@@ -1,4 +1,4 @@
-;;; sticky-scroll-mode.el --- Sticky scrolling -*- dynamic-binding: t; -*-
+;;; sticky-scroll-mode.el --- Sticky scrolling -*- lexical-binding: t; -*-
 ;;
 ;; Copyright (C) 2024 Jon Lasley
 ;;
@@ -6,7 +6,7 @@
 ;; Maintainer: Jon Lasley <jon.lasley+sticky@gmail.com>
 ;; Created: August 09, 2024
 ;; Modified: August 09, 2024
-;; Version: 0.3.0
+;; Version: 0.3.1
 ;; Keywords:  convenience extensions tools
 ;; Homepage: https://github.com/jclasley/sticky-mode
 ;; Package-Requires: ((emacs "29.4"))
@@ -36,13 +36,45 @@ window at the top of the `sticky-scroll-mode' window."
   (if sticky-scroll-mode
       (progn
         (add-hook 'post-command-hook #'sticky-scroll--should-rerun)
-        (add-hook 'buffer-list-update-hook #'sticky-scroll--buffer-hook-func)
-        (add-hook 'kill-buffer-hook #'sticky-scroll-close-buffer))
+        (add-hook 'kill-buffer-hook #'sticky-scroll-close-buffer)
+        (add-hook 'pre-command-hook #'sticky-scroll--pre-command-hook))
     (sticky-scroll-close-buffer)
     (remove-hook 'post-command-hook #'sticky-scroll--should-rerun)
-    (remove-hook 'buffer-list-update-hook #'sticky-scroll--buffer-hook-func)
     (remove-hook 'kill-buffer-hook #'sticky-scroll-close-buffer)))
 
+(defgroup sticky-scroll nil
+  "A list of scope characters per language, for identifying sticky blocks"
+  :group 'convenience)
+
+(defcustom sticky-scroll--max-window-height
+  10
+  "The max lines to display in the sticky scroll window"
+  :type 'integer)
+
+(defun sticky-scroll-popup (&optional count)
+  "Briefly show the sticky window relevant to the current position.
+If COUNT is provided, only show COUNT number of outer contexts, starting
+with the closest. Calling with `C-u N' sets COUNT to `N'."
+  (interactive "p")
+  (if sticky-scroll-mode
+      (message "Sticky mode already enabled")
+    (let ((content (sticky-scroll--collect-lines))
+          (sticky-scroll--max-window-height (or count sticky-scroll--max-window-height)))
+      (if (not content)
+          (message "No outer blocks to display")
+        (sticky-scroll--window content)
+        (setq-local sticky-scroll-quit nil)
+        (add-hook 'post-command-hook #'sticky-scroll--toggle-hide-hook)))))
+
+(defun sticky-scroll--toggle-hide-hook ()
+  "Quit the `*sticky' window on the next command input"
+  (while-no-input
+    (redisplay)
+    (when (and (not sticky-scroll-mode) (assoc (current-buffer) sticky-scroll--buffer-alist))
+      (if (not sticky-scroll-quit)
+          (setq-local sticky-scroll-quit t)
+        ;; close window and kill buffer
+        (sticky-scroll-close-buffer)))))
 
 (defvar sticky-scroll--buffer-alist nil
   "An ALIST of buffers and their associated sticky buffers")
@@ -58,16 +90,6 @@ window at the top of the `sticky-scroll-mode' window."
       (setq sticky-scroll--buffer-alist
             (cons `(,(current-buffer) . ,buf) sticky-scroll--buffer-alist))
       buf)))
-
-(defun sticky-scroll-close-buffer ()
-  (if-let ((buf-list (assoc (current-buffer) sticky-scroll--buffer-alist)))
-      (progn
-        ;; kill the buffer and the window
-        (unwind-protect ; in case the user has deleted the buffer on their own
-            (if-let ((w (get-buffer-window (cdr buf-list))))
-                (quit-window t w))
-          (setq sticky-scroll--buffer-alist
-                (assoc-delete-all (car buf-list) sticky-scroll--buffer-alist))))))
 
 (defun sticky-scroll--window (content)
   (let ((buf (sticky-scroll--buffer-for-buffer))
@@ -100,76 +122,10 @@ window at the top of the `sticky-scroll-mode' window."
            (set-window-parameter . ((no-other-window . t)
                                     (no-delete-other-window . t)))))))))
 
-(defvar sticky-scroll--last-line 0) ;; local var for lines
-(make-variable-buffer-local 'sticky-scroll--last-line)
-
-(defun sticky-scroll--should-rerun ()
-  "Only rerun if the new line is different from the last time we checked."
-  (when sticky-scroll-mode
-    (while-no-input
-      (redisplay)
-      (let* ((pos (point))
-             (line (line-number-at-pos pos)))
-        (unless (equal line sticky-scroll--last-line)
-          (let ((content (sticky-scroll--collect-lines)))
-            (sticky-scroll--window content))
-          (setq-local sticky-scroll--last-line line))))))
-
-(defvar sticky-scroll-p nil)
-
-
-;; BUG: doesn't work that well when moving back and forth between buffers
-;; need to seriously reevaluate this, as it fucks up a lot of stuff
-(defun sticky-scroll--buffer-hook-func ()
-  "Manage deleting the sticky window when its parent buffer is not live.
-Check the `sticky-scroll--buffer-alist' to see if any parents
-are not in a live window. If not, delete the sticky buffer."
-  (dolist (cell sticky-scroll--buffer-alist)
-    (let ((w (get-buffer-window (car cell))))
-      (when (not (window-live-p w))
-        (setq sticky-scroll--buffer-alist
-              (assoc-delete-all (car cell) sticky-scroll--buffer-alist))
-        (with-current-buffer (cdr cell)
-          (kill-buffer-and-window))))))
-
-(defun sticky-scroll-popup (&optional count)
-  "Briefly show the sticky window relevant to the current position.
-If COUNT is provided, only show COUNT number of outer contexts, starting
-with the closest. Calling with `C-u N' sets COUNT to `N'."
-  (interactive "p")
-  (if sticky-scroll-mode
-      (message "Sticky mode already enabled")
-    (let ((content (sticky-scroll--collect-lines))
-          (sticky-scroll--max-window-height (or count sticky-scroll--max-window-height)))
-      (if (not content)
-          (message "No outer blocks to display")
-        (sticky-scroll--window content)
-        (setq-local sticky-scroll-quit nil)
-        (add-hook 'post-command-hook #'sticky-scroll--toggle-hide-hook)))))
-
-(defun sticky-scroll--toggle-hide-hook ()
-  "Quit the `*sticky' window on the next command input"
-  (while-no-input
-    (redisplay)
-    (when (and (not sticky-scroll-mode) (assoc (current-buffer) sticky-scroll--buffer-alist))
-      (if (not sticky-scroll-quit)
-          (setq-local sticky-scroll-quit t)
-        ;; close window and kill buffer
-        (sticky-scroll-close-buffer)))))
-
-(defgroup sticky-scroll nil
-  "A list of scope characters per language, for identifying sticky blocks"
-  :group 'convenience)
-
-(defcustom sticky-scroll--max-window-height
-  10
-  "The max lines to display in the sticky scroll window"
-  :type 'integer)
-
 ;; TODO: don't drop buffer when we are on an empty line inside valid context
 (defun sticky-scroll--collect-lines (&optional point start-indent content seen-levels)
-  "Move backwards through the buffer, line by line,
-collecting the first line that has an indentation level
+  "Move backwards through the buffer, line by line, gathering contexts.
+Collect the first line that has an indentation level
 that is less than START-INDENT, the identation level at
 the starting POINT. CONTENT is the list of string content found on
 those lines. Only find at most one item at each indentation level."
@@ -198,6 +154,43 @@ those lines. Only find at most one item at each indentation level."
             (setq seen-levels (cons prev-indent seen-levels)))
           (sticky-scroll--collect-lines (line-beginning-position) start-indent
                                         content seen-levels))))))
+
+(defun sticky-scroll-close-buffer (&optional cell)
+  (if-let ((buf-list (or cell (assoc (current-buffer) sticky-scroll--buffer-alist))))
+      (progn
+        ;; kill the buffer and the window
+        (setq sticky-scroll--buffer-alist
+              (assoc-delete-all (car buf-list) sticky-scroll--buffer-alist))
+        (unwind-protect ; in case the user has deleted the buffer on their own
+            (if-let ((w (get-buffer-window (cdr buf-list))))
+                ;; FIXME
+                (progn
+                  (quit-window t w))
+              (kill-buffer (cdr buf-list)))))))
+(defvar sticky-scroll--last-line 0) ;; local var for lines
+(make-variable-buffer-local 'sticky-scroll--last-line)
+
+(defun sticky-scroll--should-rerun ()
+  "Only rerun if the new line is different from the last time we checked."
+  (if sticky-scroll-mode
+      (while-no-input
+        (redisplay)
+        (let* ((pos (point))
+               (line (line-number-at-pos pos)))
+          (unless (equal line sticky-scroll--last-line)
+            (let ((content (sticky-scroll--collect-lines)))
+              (sticky-scroll--window content))
+            (setq-local sticky-scroll--last-line line))))
+    (sticky-scroll-close-buffer)))
+
+(defun sticky-scroll--pre-command-hook ()
+  "If we are going to swap buffers, go ahead and close the sticky window first."
+  (if (or
+       (eq this-command #'previous-buffer)
+       (eq last-command #'previous-buffer)
+       (eq this-command #'next-buffer)
+       (eq last-command #'next-buffer))
+      (sticky-scroll-close-buffer)))
 
 (provide 'sticky-scroll-mode)
 ;;; sticky-scroll-mode.el ends here

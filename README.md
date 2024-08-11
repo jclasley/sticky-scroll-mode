@@ -39,5 +39,4 @@ Otherwise, the sticky window shows all lines.
 
 ## Known bugs
 
-The live sticky window is temperamental. Closing the buffer with the live window successfully closes the sticky window and cleans up resources, as does disabling `sticky-scroll-toggle`.
-However, changing buffers is super finnicky and I don't recommend it (for now). I am quickly working on a release to manage that better.
+The sticky window disappears if you move to a 0-indent line that is within some indentation scope. Working on it.
