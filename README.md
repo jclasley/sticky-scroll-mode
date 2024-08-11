@@ -19,7 +19,7 @@ then `C-u 2 sticky-scroll-popup` will only show
 ```
   B {
     C {
-```
+    ```
 
 ## Example
 ![sticky-mode-scroll](https://github.com/user-attachments/assets/43bf0c34-e7e5-4c64-b35d-6dc7eed98eab)
@@ -39,5 +39,5 @@ Otherwise, the sticky window shows all lines.
 
 ## Known bugs
 
-The live sticky window is tempermental. Closing the buffer with the live window successfully closes the sticky window and cleans up resources, as does disabling `sticky-scroll-toggle`.
+The live sticky window is temperamental. Closing the buffer with the live window successfully closes the sticky window and cleans up resources, as does disabling `sticky-scroll-toggle`.
 However, changing buffers is super finnicky and I don't recommend it (for now). I am quickly working on a release to manage that better.
