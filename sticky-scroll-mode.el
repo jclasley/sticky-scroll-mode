@@ -6,7 +6,7 @@
 ;; Maintainer: Jon Lasley <jon.lasley+sticky@gmail.com>
 ;; Created: August 09, 2024
 ;; Modified: August 09, 2024
-;; Version: 0.2.0
+;; Version: 0.3.0
 ;; Keywords:  convenience extensions tools
 ;; Homepage: https://github.com/jclasley/sticky-mode
 ;; Package-Requires: ((emacs "29.4"))
@@ -59,7 +59,6 @@ window at the top of the `sticky-scroll-mode' window."
             (cons `(,(current-buffer) . ,buf) sticky-scroll--buffer-alist))
       buf)))
 
-;; BUG: when quickly scrolling, it deletes the buffer and window
 (defun sticky-scroll-close-buffer ()
   (if-let ((buf-list (assoc (current-buffer) sticky-scroll--buffer-alist)))
       (progn
@@ -85,7 +84,7 @@ window at the top of the `sticky-scroll-mode' window."
           (dolist (str content)
             (insert str)
             (insert ?\n)))
-        (if (> sticky-scroll--max-window-height height)
+        (if (< sticky-scroll--max-window-height (length content))
             (progn
               (goto-char (point-min))
               (forward-line (- (length content) sticky-scroll--max-window-height)))
@@ -133,14 +132,13 @@ have been killed. At the same time, check if any non-killed buffers
         (with-current-buffer (cdr cell)
           (kill-buffer-and-window))))))
 
-
-;; TODO - make it C-u compatible so that it only displays X outer positions
-(defun sticky-scroll-popup ()
+(defun sticky-scroll-popup (&optional count)
   "Briefly show the sticky window relevant to the current position."
-  (interactive)
+  (interactive "p")
   (if sticky-scroll-mode
       (message "Sticky mode already enabled")
-    (let ((content (sticky-scroll--collect-lines)))
+    (let ((content (sticky-scroll--collect-lines))
+          (sticky-scroll--max-window-height (or count sticky-scroll--max-window-height)))
       (if (not content)
           (message "No outer blocks to display")
         (sticky-scroll--window content)
