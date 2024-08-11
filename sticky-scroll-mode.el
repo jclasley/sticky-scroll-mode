@@ -185,12 +185,10 @@ those lines. Only find at most one item at each indentation level."
 
 (defun sticky-scroll--pre-command-hook ()
   "If we are going to swap buffers, go ahead and close the sticky window first."
-  (if (or
-       (eq this-command #'previous-buffer)
-       (eq last-command #'previous-buffer)
-       (eq this-command #'next-buffer)
-       (eq last-command #'next-buffer))
-      (sticky-scroll-close-buffer)))
+  (when (or
+         (eq this-command #'previous-buffer)
+         (eq this-command #'next-buffer))
+    (sticky-scroll-close-buffer)))
 
 (provide 'sticky-scroll-mode)
 ;;; sticky-scroll-mode.el ends here
