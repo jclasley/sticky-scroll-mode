@@ -33,9 +33,8 @@
 (define-minor-mode sticky-scroll-mode
   "Enable a live-reloading sticky scroll window.
 Keep track of the context in this buffer. Safe for use in mutliple buffers
-at once. Utilizes `sticky-scroll--language-list' to determine which braces
-to look for to define a context,based on
-the `treesit' parser in the current buffer."
+at once. Utilizes indentation to find outer scopes and display them in a
+window at the top of the `sticky-scroll-mode' window."
   :init-value nil ;; initial value
   ;; indicator
   :lighter " sticky"
@@ -160,11 +159,6 @@ have been killed. At the same time, check if any non-killed buffers
         ;; close window and kill buffer
         (sticky-scroll-close-buffer)))))
 
-;; (defun sticky-scroll--content (pos)
-;;   ;; find the offscreen lines, and concat the content
-;;   (let ((lines (sticky-scroll--offscreen-lines pos)))
-;;     (mapconcat #'(lambda (elt) (concat elt "\n")) (reverse lines))))
-
 (defgroup sticky-scroll nil
   "A list of scope characters per language, for identifying sticky blocks"
   :group 'convenience)
@@ -173,33 +167,6 @@ have been killed. At the same time, check if any non-killed buffers
   10
   "The max lines to display in the sticky scroll window"
   :type 'integer)
-
-;; (defvar sticky-scroll--language-list
-;;   '((go . (("{" . "}") ("(" . ")")))
-;;     (tsx . (("{" . "}") ("(" . ")")))))
-
-;; (add-to-list 'sticky-scroll--language-list '(rust . (("{" . "}") ("(" . ")"))))
-
-;; (defun sticky-scroll--build-treesit-query ()
-;;   (let* ((lang (treesit-language-at 1))
-;;          (symbols (alist-get lang sticky-scroll--language-list))
-;;          (openers (seq-reduce #'(lambda (memo elt)
-;;                                   (push (car elt) memo)) symbols nil))
-;;          (closers (seq-reduce #'(lambda (memo elt)
-;;                                   (push (cdr elt) memo)) symbols nil)))
-;;     ;; return in form of `(OPENING . CLOSING)`
-;;     (list `(_ ,(vconcat openers) @opening)
-;;           `(_ ,(vconcat closers) @closing))))
-
-
-;; (defun sticky-scroll--block-line-numbers ()
-;;   "Find all the opening and closing blocks in the buffer, then create
-;; an ALIST with it"
-;;   (let ((query (sticky-scroll--build-treesit-query)))
-;;     ;; add all the openings to a list
-;;     (setq-local sticky-scroll--blocks
-;;                 (treesit-query-capture (treesit-buffer-root-node) query))
-;;     (sticky-scroll--section-line-alist sticky-scroll--blocks)))
 
 (defun sticky-scroll--collect-lines (&optional point start-indent content seen-levels)
   "Move backwards through the buffer, line by line,
@@ -232,46 +199,6 @@ those lines. Only find at most one item at each indentation level."
             (setq seen-levels (cons prev-indent seen-levels)))
           (sticky-scroll--collect-lines (line-beginning-position) start-indent
                                         content seen-levels))))))
-
-;; (defun sticky-scroll--section-line-alist (capture-alist)
-;;   "Turn a list of all opening and closing captures into an alist with in the form
-;; of `(start_line . end_line)'"
-;;   (let (stack (ret '()))
-;;     (dolist (capture capture-alist stack)
-;;       (let ((line (line-number-at-pos (treesit-node-start (cdr capture)))))
-;;         (if (eql (car capture) 'opening)
-;;             ;; use the classic push-to-stack to find matching parens
-;;             (push line stack)
-
-;;           ;; have to pop and assign to new -- maybe better way but do that
-;;           ;; don't push single line blocks or duplicates
-;;           (let ((open (pop stack)))
-;;             (unless (or (eql open line)
-;;                         (assoc open ret))
-;;               (push (cons open line) ret))))))
-;;     ret))
-
-;; (defun sticky-scroll--unclosed-blocks-before (pos)
-;;   (let ((line (line-number-at-pos pos)))
-;;     (seq-filter #'(lambda (elt)
-;;                     (and
-;;                      ;; first check that it's offscreen
-;;                      (< (car elt) (line-number-at-pos (window-start)))
-;;                      ;; then check that it's before our line
-;;                      (< (car elt) line)
-;;                      ;; then check that its closing is after our line
-;;                      (> (cdr elt) line)))
-;;                 (sticky-scroll--block-line-numbers))))
-
-;; (defun sticky-scroll--offscreen-lines (pos)
-;;   "Get the string content of the offscreen opening blocks"
-;;   (when-let ((lines (sticky-scroll--unclosed-blocks-before pos)))
-;;     (let (ret)
-;;       (dolist (line lines ret)
-;;         (save-excursion
-;;           (goto-char (point-min))
-;;           (forward-line (1- (car line)))
-;;           (push (buffer-substring-no-properties (line-beginning-position) (line-end-position)) ret))))))
 
 (provide 'sticky-scroll-mode)
 ;;; sticky-scroll-mode.el ends here
