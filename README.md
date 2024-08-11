@@ -4,6 +4,23 @@ Sticky scroll mode is a minor mode to enable sticky scrolling in any buffer, lan
 If you'd prefer not to have a live sticky scroll window, and would rather have a temporary popup, you can use
 `sticky-scroll-popup` to briefly show the outer, offscreen context.
 
+### `sticky-scroll-popup`
+
+Compatible with `C-u`, it temporarily sets the number of outer contexts to show.
+For instance, `C-u 2 sticky-scroll-popup` will only show the two outer contexts, starting with the innermost context.
+If the full outer context is 
+```
+A {
+  B {
+    C {
+```
+then `C-u 2 sticky-scroll-popup` will only show
+
+```
+  B {
+    C {
+```
+
 ## Example
 ![sticky-mode-scroll](https://github.com/user-attachments/assets/43bf0c34-e7e5-4c64-b35d-6dc7eed98eab)
 
