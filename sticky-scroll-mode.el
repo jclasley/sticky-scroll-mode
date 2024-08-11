@@ -163,9 +163,7 @@ those lines. Only find at most one item at each indentation level."
               (assoc-delete-all (car buf-list) sticky-scroll--buffer-alist))
         (unwind-protect ; in case the user has deleted the buffer on their own
             (if-let ((w (get-buffer-window (cdr buf-list))))
-                ;; FIXME
-                (progn
-                  (quit-window t w))
+                (quit-window t w)
               (kill-buffer (cdr buf-list)))))))
 (defvar sticky-scroll--last-line 0) ;; local var for lines
 (make-variable-buffer-local 'sticky-scroll--last-line)
