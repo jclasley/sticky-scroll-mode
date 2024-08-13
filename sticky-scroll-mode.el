@@ -43,12 +43,12 @@ window at the top of the `sticky-scroll-mode' window."
     (remove-hook 'kill-buffer-hook #'sticky-scroll-close-buffer)))
 
 (defgroup sticky-scroll nil
-  "A list of scope characters per language, for identifying sticky blocks"
+  "A list of scope characters per language, for identifying sticky blocks."
   :group 'convenience)
 
 (defcustom sticky-scroll--max-window-height
   10
-  "The max lines to display in the sticky scroll window"
+  "The max lines to display in the sticky scroll window."
   :type 'integer)
 
 (defun sticky-scroll-popup (&optional count)
@@ -67,7 +67,7 @@ with the closest. Calling with `C-u N' sets COUNT to `N'."
         (add-hook 'post-command-hook #'sticky-scroll--toggle-hide-hook)))))
 
 (defun sticky-scroll--toggle-hide-hook ()
-  "Quit the `*sticky' window on the next command input"
+  "Quit the `*sticky' window on the next command input."
   (while-no-input
     (redisplay)
     (when (and (not sticky-scroll-mode) (assoc (current-buffer) sticky-scroll--buffer-alist))
@@ -77,9 +77,12 @@ with the closest. Calling with `C-u N' sets COUNT to `N'."
         (sticky-scroll-close-buffer)))))
 
 (defvar sticky-scroll--buffer-alist nil
-  "An ALIST of buffers and their associated sticky buffers")
+  "An ALIST of buffers and their associated sticky buffers.")
 
 (defun sticky-scroll--buffer-for-buffer (&optional buffer)
+  "Return the sticky buffer that is correlated to BUFFER.
+If BUFFER is nil, use `current-buffer' instead. If there is no
+sticky buffer, return nil"
   (if-let ((buf (alist-get (or buffer (current-buffer)) sticky-scroll--buffer-alist))
            (buffer-live-p buf))
       buf
@@ -92,6 +95,7 @@ with the closest. Calling with `C-u N' sets COUNT to `N'."
       buf)))
 
 (defun sticky-scroll--window (content)
+  "Create the sticky scroll window, displaying CONTENT."
   (let ((buf (sticky-scroll--buffer-for-buffer))
         (height (min (length content) sticky-scroll--max-window-height)))
     (if (not content)
@@ -156,6 +160,8 @@ those lines. Only find at most one item at each indentation level."
                                         content seen-levels))))))
 
 (defun sticky-scroll-close-buffer (&optional cell)
+  "Close the current buffer's sticky window, or `(cdr CELL)'.
+If not found or already closed, do nothing."
   (if-let ((buf-list (or cell (assoc (current-buffer) sticky-scroll--buffer-alist))))
       (progn
         ;; kill the buffer and the window
@@ -165,6 +171,7 @@ those lines. Only find at most one item at each indentation level."
             (if-let ((w (get-buffer-window (cdr buf-list))))
                 (quit-window t w)
               (kill-buffer (cdr buf-list)))))))
+
 (defvar sticky-scroll--last-line 0) ;; local var for lines
 (make-variable-buffer-local 'sticky-scroll--last-line)
 
