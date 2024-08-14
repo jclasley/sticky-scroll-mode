@@ -23,6 +23,8 @@
 ;;
 ;;; Code:
 
+;; TODO: support mouse links for lines in sticky scrolling
+
 ;;;###autoload
 (define-minor-mode sticky-scroll-mode
   "Enable a live-reloading sticky scroll window.
@@ -32,7 +34,6 @@ window at the top of the `sticky-scroll-mode' window."
   :init-value nil ;; initial value
   ;; indicator
   :lighter " sticky"
-  :keymap '(([C-tab] . sticky-scroll-toggle) ([C-backspace] . sticky-live-init))
   (if sticky-scroll-mode
       (progn
         (add-hook 'post-command-hook #'sticky-scroll--should-rerun)
