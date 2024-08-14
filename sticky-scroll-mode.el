@@ -5,7 +5,7 @@
 ;; Author: Jon Lasley <jon.lasley+sticky@gmail.com>
 ;; Maintainer: Jon Lasley <jon.lasley+sticky@gmail.com>
 ;; Created: August 09, 2024
-;; Modified: August 09, 2024
+;; Modified: August 13, 2024
 ;; Version: 0.3.1
 ;; Keywords:  convenience extensions tools
 ;; Homepage: https://github.com/jclasley/sticky-mode
@@ -19,10 +19,10 @@
 ;;  which keeps the scope(s) containing POINT at the top
 ;;  of your current window.
 ;;  To activate a live-reloading sticky scroll window, toggle `sticky-scroll-mode'.
-;;  To show a one time sticky scroll window, `M-x sticky-toggle'.
-;;  This package relies on `treesit' to parse the syntax tree.
+;;  To show a one time sticky scroll window, `M-x sticky-scroll-popup'.
 ;;
 ;;; Code:
+
 ;;;###autoload
 (define-minor-mode sticky-scroll-mode
   "Enable a live-reloading sticky scroll window.
@@ -104,7 +104,7 @@ sticky buffer, return nil"
       ;; otherwise, create the buffer
       (with-current-buffer buf
         ;; only change the major mode if necessary
-        (hide-mode-line-mode 1)
+        (setq-local mode-line-format nil)
         (erase-buffer)
         (let ((inhibit-message t))
           (dolist (str content)
