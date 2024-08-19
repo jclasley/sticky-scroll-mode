@@ -64,6 +64,11 @@ window at the top of the `sticky-scroll-mode' window."
   "The max lines to display in the sticky scroll window."
   :type 'integer)
 
+(defvar sticky-scroll--quit nil
+  "Used to temporarily hold until the next input in the `post-command-hook'.
+Should not be edited by the user in any way.")
+(make-variable-buffer-local 'sticky-scroll--quit)
+
 (defun sticky-scroll-popup (&optional count)
   "Briefly show the sticky window relevant to the current position.
 If COUNT is provided, only show COUNT number of outer contexts, starting
@@ -76,12 +81,8 @@ with the closest. Calling with `C-u N' sets COUNT to `N'."
       (if (not content)
           (message "No outer blocks to display")
         (sticky-scroll--window content)
-        (setq-local sticky-scroll-quit nil)
+        (setq-local sticky-scroll--quit nil)
         (add-hook 'post-command-hook #'sticky-scroll--toggle-hide-hook)))))
-
-(defvar sticky-scroll-quit nil
-  "Used to temporarily hold until the next input in the `post-command-hook'.
-Should not be edited by the user in any way.")
 
 (defvar sticky-scroll--buffer-alist nil
   "An ALIST of buffers and their associated sticky buffers.")
@@ -91,8 +92,8 @@ Should not be edited by the user in any way.")
   (while-no-input
     (redisplay)
     (when (and (not sticky-scroll-mode) (assoc (current-buffer) sticky-scroll--buffer-alist))
-      (if (not sticky-scroll-quit)
-          (setq-local sticky-scroll-quit t)
+      (if (not sticky-scroll--quit)
+          (setq-local sticky-scroll--quit t)
         ;; close window and kill buffer
         (sticky-scroll-close-buffer)))))
 
