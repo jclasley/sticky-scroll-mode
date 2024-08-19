@@ -47,7 +47,7 @@ window at the top of the `sticky-scroll-mode' window."
   "A list of scope characters per language, for identifying sticky blocks."
   :group 'convenience)
 
-(defcustom sticky-scroll--max-window-height
+(defcustom sticky-scroll-max-window-height
   10
   "The max lines to display in the sticky scroll window."
   :type 'integer)
@@ -60,12 +60,19 @@ with the closest. Calling with `C-u N' sets COUNT to `N'."
   (if sticky-scroll-mode
       (message "Sticky mode already enabled")
     (let ((content (sticky-scroll--collect-lines))
-          (sticky-scroll--max-window-height (or count sticky-scroll--max-window-height)))
+          (sticky-scroll-max-window-height (or count sticky-scroll-max-window-height)))
       (if (not content)
           (message "No outer blocks to display")
         (sticky-scroll--window content)
         (setq-local sticky-scroll-quit nil)
         (add-hook 'post-command-hook #'sticky-scroll--toggle-hide-hook)))))
+
+(defvar sticky-scroll-quit nil
+  "Used to temporarily hold until the next input in the `post-command-hook'.
+Should not be edited by the user in any way.")
+
+(defvar sticky-scroll--buffer-alist nil
+  "An ALIST of buffers and their associated sticky buffers.")
 
 (defun sticky-scroll--toggle-hide-hook ()
   "Quit the `*sticky' window on the next command input."
@@ -77,8 +84,6 @@ with the closest. Calling with `C-u N' sets COUNT to `N'."
         ;; close window and kill buffer
         (sticky-scroll-close-buffer)))))
 
-(defvar sticky-scroll--buffer-alist nil
-  "An ALIST of buffers and their associated sticky buffers.")
 
 (defun sticky-scroll--buffer-for-buffer (&optional buffer)
   "Return the sticky buffer that is correlated to BUFFER.
@@ -98,7 +103,7 @@ sticky buffer, return nil"
 (defun sticky-scroll--window (content)
   "Create the sticky scroll window, displaying CONTENT."
   (let ((buf (sticky-scroll--buffer-for-buffer))
-        (height (min (length content) sticky-scroll--max-window-height)))
+        (height (min (length content) sticky-scroll-max-window-height)))
     (if (not content)
         ;; kill it if it's empty
         (sticky-scroll-close-buffer)
@@ -111,10 +116,10 @@ sticky buffer, return nil"
           (dolist (str content)
             (insert str)
             (insert ?\n)))
-        (if (< sticky-scroll--max-window-height (length content))
+        (if (< sticky-scroll-max-window-height (length content))
             (progn
               (goto-char (point-min))
-              (forward-line (- (length content) sticky-scroll--max-window-height)))
+              (forward-line (- (length content) sticky-scroll-max-window-height)))
           (goto-char (point-min))))
       ;; only make the window if there isn't one yet
       ;; (unless (get-buffer-window buf)
