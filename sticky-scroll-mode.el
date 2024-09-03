@@ -113,6 +113,32 @@ sticky buffer, return nil"
             (cons `(,(current-buffer) . ,buf) sticky-scroll--buffer-alist))
       buf)))
 
+(defun sticky-scroll--not-actually-empty (p)
+  "Check if `P' is a blank line inside some other context.
+If the content above and below are both indented >0, it's a blank line.
+Have to keep going until we hit content or the end of the buffer."
+  (let ((end (point-max))
+        (beg (point-min))
+        indented-below indented-above)
+    (save-excursion
+      ;; go down
+      (while (and (eq (char-after (point)) ?\n)
+                  (< (point) end))
+        (forward-line 1))
+
+      (message (format "down point: %s" (point)))
+      (setq indented-below (> (current-indentation) 0))
+      ;; go back to point and go up
+      (goto-char p)
+      ;; go up
+      (while (and (eq (char-after (point)) ?\n)
+                  (> (point) beg))
+        (forward-line -1))
+
+      (message (format "down point: %s" (point)))
+      (setq indented-above (> (current-indentation) 0)))
+    (and indented-above indented-below)))
+
 (defun sticky-scroll--window (content)
   "Create the sticky scroll window, displaying CONTENT."
   (let ((buf (sticky-scroll--buffer-for-buffer))
@@ -136,6 +162,7 @@ sticky buffer, return nil"
           (goto-char (point-min))))
       ;; only make the window if there isn't one yet
       ;; (unless (get-buffer-window buf)
+
       (when (> height 0)
         (display-buffer
          buf
@@ -153,6 +180,13 @@ that is less than START-INDENT, the identation level at
 the starting POINT. CONTENT is the list of string content found on
 those lines. Only find at most one item at each indentation level."
   (save-excursion
+    ;; if the line is blank and surrounding by indentation, skip it
+    (when (and
+           (eq (current-indentation) 0)
+           (sticky-scroll--not-actually-empty (point)))
+      (forward-line -1)
+      (sticky-scroll--collect-lines (line-beginning-position)))
+
     (goto-char (or point (point)))
     (let ((indent (current-indentation))
           (start-indent (or start-indent (current-indentation))))
@@ -177,6 +211,7 @@ those lines. Only find at most one item at each indentation level."
             (setq seen-levels (cons prev-indent seen-levels)))
           (sticky-scroll--collect-lines (line-beginning-position) start-indent
                                         content seen-levels))))))
+;; )
 
 (defun sticky-scroll-close-buffer (&optional cell)
   "Close the current buffer's sticky window, or `(cdr CELL)'.
@@ -201,7 +236,7 @@ If not found or already closed, do nothing."
         (redisplay)
         (let* ((pos (point))
                (line (line-number-at-pos pos)))
-          (unless (equal line sticky-scroll--last-line)
+          (unless (eq line sticky-scroll--last-line)
             (let ((content (sticky-scroll--collect-lines)))
               (sticky-scroll--window content))
             (setq-local sticky-scroll--last-line line))))
