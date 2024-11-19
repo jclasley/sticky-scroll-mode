@@ -76,8 +76,7 @@ with the closest. Calling with `C-u N' sets COUNT to `N'."
   (interactive "p")
   (if sticky-scroll-mode
       (message "Sticky mode already enabled")
-    (let ((content (sticky-scroll--collect-lines))
-          (sticky-scroll-max-window-height (or count sticky-scroll-max-window-height)))
+    (let ((content (sticky-scroll--collect-lines)))
       (if (not content)
           (message "No outer blocks to display")
         (sticky-scroll--window content)
@@ -208,7 +207,6 @@ those lines. Only find at most one item at each indentation level."
             (setq seen-levels (cons prev-indent seen-levels)))
           (sticky-scroll--collect-lines (line-beginning-position) start-indent
                                         content seen-levels))))))
-;; )
 
 (defun sticky-scroll-close-buffer (&optional cell)
   "Close the current buffer's sticky window, or `(cdr CELL)'.
