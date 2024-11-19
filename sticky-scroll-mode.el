@@ -126,7 +126,6 @@ Have to keep going until we hit content or the end of the buffer."
                   (< (point) end))
         (forward-line 1))
 
-      (message (format "down point: %s" (point)))
       (setq indented-below (> (current-indentation) 0))
       ;; go back to point and go up
       (goto-char p)
@@ -135,7 +134,6 @@ Have to keep going until we hit content or the end of the buffer."
                   (> (point) beg))
         (forward-line -1))
 
-      (message (format "down point: %s" (point)))
       (setq indented-above (> (current-indentation) 0)))
     (and indented-above indented-below)))
 
@@ -148,8 +146,8 @@ Have to keep going until we hit content or the end of the buffer."
         (sticky-scroll-close-buffer)
       ;; otherwise, create the buffer
       (with-current-buffer buf
-        ;; only change the major mode if necessary
-        (setq-local mode-line-format nil)
+        (setq-local mode-line-format nil
+                    line-spacing 1)
         (erase-buffer)
         (let ((inhibit-message t))
           (dolist (str content)
@@ -167,12 +165,11 @@ Have to keep going until we hit content or the end of the buffer."
         (display-buffer
          buf
          `(display-buffer-in-direction
-           (direction . above) (window-height . ,height)
-           (preserve-size . (nil . t))
+           (direction . above) (window-height . ,(1+ height))
+           (preserve-size . (nil . t)) (dedicated . t)
            (set-window-parameter . ((no-other-window . t)
                                     (no-delete-other-window . t)))))))))
 
-;; TODO: don't drop buffer when we are on an empty line inside valid context
 (defun sticky-scroll--collect-lines (&optional point start-indent content seen-levels)
   "Move backwards through the buffer, line by line, gathering contexts.
 Collect the first line that has an indentation level
