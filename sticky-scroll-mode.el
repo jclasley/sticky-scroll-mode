@@ -69,11 +69,9 @@ window at the top of the `sticky-scroll-mode' window."
 Should not be edited by the user in any way.")
 (make-variable-buffer-local 'sticky-scroll--quit)
 
-(defun sticky-scroll-popup (&optional count)
-  "Briefly show the sticky window relevant to the current position.
-If COUNT is provided, only show COUNT number of outer contexts, starting
-with the closest. Calling with `C-u N' sets COUNT to `N'."
-  (interactive "p")
+(defun sticky-scroll-popup ()
+  "Briefly show the sticky window relevant to the current position."
+  (interactive)
   (if sticky-scroll-mode
       (message "Sticky mode already enabled")
     (let ((content (sticky-scroll--collect-lines)))
@@ -144,6 +142,14 @@ Have to keep going until we hit content or the end of the buffer."
         ;; kill it if it's empty
         (sticky-scroll-close-buffer)
       ;; otherwise, create the buffer
+      (when (> height 0)
+        (display-buffer
+         buf
+         `(display-buffer-in-direction
+           (direction . above) (window-height . ,height)
+           (preserve-size . (nil . t)) (dedicated . t)
+           (set-window-parameter . ((no-other-window . t)
+                                    (no-delete-other-window . t))))))
       (with-current-buffer buf
         (setq-local mode-line-format nil
                     line-spacing 1)
@@ -151,23 +157,17 @@ Have to keep going until we hit content or the end of the buffer."
         (let ((inhibit-message t))
           (dolist (str content)
             (insert str)
-            (insert ?\n)))
-        (if (< sticky-scroll-max-window-height (length content))
-            (progn
-              (goto-char (point-min))
-              (forward-line (- (length content) sticky-scroll-max-window-height)))
-          (goto-char (point-min))))
-      ;; only make the window if there isn't one yet
-      ;; (unless (get-buffer-window buf)
-
-      (when (> height 0)
-        (display-buffer
-         buf
-         `(display-buffer-in-direction
-           (direction . above) (window-height . ,(1+ height))
-           (preserve-size . (nil . t)) (dedicated . t)
-           (set-window-parameter . ((no-other-window . t)
-                                    (no-delete-other-window . t)))))))))
+            (insert ?\n))))
+      (save-excursion
+        (let ((w (get-buffer-window (current-buffer))))
+          (select-window (get-buffer-window buf))
+          (if (< height (length content))
+              (progn
+                ;; TODO: why not moving forward
+                (goto-char (point-min))
+                (forward-line (- (length content) height)))
+            (goto-char (point-min)))
+          (select-window w))))))
 
 (defun sticky-scroll--collect-lines (&optional point start-indent content seen-levels)
   "Move backwards through the buffer, line by line, gathering contexts.
