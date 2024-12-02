@@ -69,15 +69,12 @@ window at the top of the `sticky-scroll-mode' window."
 Should not be edited by the user in any way.")
 (make-variable-buffer-local 'sticky-scroll--quit)
 
-(defun sticky-scroll-popup (&optional count)
-  "Briefly show the sticky window relevant to the current position.
-If COUNT is provided, only show COUNT number of outer contexts, starting
-with the closest. Calling with `C-u N' sets COUNT to `N'."
-  (interactive "p")
+(defun sticky-scroll-popup ()
+  "Briefly show the sticky window relevant to the current position."
+  (interactive)
   (if sticky-scroll-mode
       (message "Sticky mode already enabled")
-    (let ((content (sticky-scroll--collect-lines))
-          (sticky-scroll-max-window-height (or count sticky-scroll-max-window-height)))
+    (let ((content (sticky-scroll--collect-lines)))
       (if (not content)
           (message "No outer blocks to display")
         (sticky-scroll--window content)
@@ -126,7 +123,6 @@ Have to keep going until we hit content or the end of the buffer."
                   (< (point) end))
         (forward-line 1))
 
-      (message (format "down point: %s" (point)))
       (setq indented-below (> (current-indentation) 0))
       ;; go back to point and go up
       (goto-char p)
@@ -135,7 +131,6 @@ Have to keep going until we hit content or the end of the buffer."
                   (> (point) beg))
         (forward-line -1))
 
-      (message (format "down point: %s" (point)))
       (setq indented-above (> (current-indentation) 0)))
     (and indented-above indented-below)))
 
@@ -147,32 +142,33 @@ Have to keep going until we hit content or the end of the buffer."
         ;; kill it if it's empty
         (sticky-scroll-close-buffer)
       ;; otherwise, create the buffer
-      (with-current-buffer buf
-        ;; only change the major mode if necessary
-        (setq-local mode-line-format nil)
-        (erase-buffer)
-        (let ((inhibit-message t))
-          (dolist (str content)
-            (insert str)
-            (insert ?\n)))
-        (if (< sticky-scroll-max-window-height (length content))
-            (progn
-              (goto-char (point-min))
-              (forward-line (- (length content) sticky-scroll-max-window-height)))
-          (goto-char (point-min))))
-      ;; only make the window if there isn't one yet
-      ;; (unless (get-buffer-window buf)
-
       (when (> height 0)
         (display-buffer
          buf
          `(display-buffer-in-direction
            (direction . above) (window-height . ,height)
-           (preserve-size . (nil . t))
+           (preserve-size . (nil . t)) (dedicated . t)
            (set-window-parameter . ((no-other-window . t)
-                                    (no-delete-other-window . t)))))))))
+                                    (no-delete-other-window . t))))))
+      (with-current-buffer buf
+        (setq-local mode-line-format nil
+                    line-spacing 1)
+        (erase-buffer)
+        (let ((inhibit-message t))
+          (dolist (str content)
+            (insert str)
+            (insert ?\n))))
+      (save-excursion
+        (let ((w (get-buffer-window (current-buffer))))
+          (select-window (get-buffer-window buf))
+          (if (< height (length content))
+              (progn
+                ;; TODO: why not moving forward
+                (goto-char (point-min))
+                (forward-line (- (length content) height)))
+            (goto-char (point-min)))
+          (select-window w))))))
 
-;; TODO: don't drop buffer when we are on an empty line inside valid context
 (defun sticky-scroll--collect-lines (&optional point start-indent content seen-levels)
   "Move backwards through the buffer, line by line, gathering contexts.
 Collect the first line that has an indentation level
@@ -211,7 +207,6 @@ those lines. Only find at most one item at each indentation level."
             (setq seen-levels (cons prev-indent seen-levels)))
           (sticky-scroll--collect-lines (line-beginning-position) start-indent
                                         content seen-levels))))))
-;; )
 
 (defun sticky-scroll-close-buffer (&optional cell)
   "Close the current buffer's sticky window, or `(cdr CELL)'.
