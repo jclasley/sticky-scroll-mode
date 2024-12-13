@@ -8,6 +8,34 @@ If you'd prefer not to have a live sticky scroll window, and would rather have a
 ## Example
 ![sticky-mode-scroll](https://github.com/user-attachments/assets/43bf0c34-e7e5-4c64-b35d-6dc7eed98eab)
 
+## Installation
+You can install with MELPA
+
+### Melpa setup
+
+``` emacs-lisp
+(require 'package)
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
+```
+
+### Sticky scroll
+
+``` emacs-lisp
+(require 'sticky-scroll-mode)
+```
+
+### use-package
+
+``` emacs-lisp
+(use-package sticky-scroll-mode
+  :ensure t
+  ;; example hook
+  :hook
+  (prog-mode . sticky-scroll-mode))
+```
+
+## Usage
+
 ### Sticky scroll window
 
 The package exposes the `sticky-scroll--max-window-height` which can be thought of as "the max number of outer contexts shown". If
@@ -40,8 +68,3 @@ Compatible with `C-u N`, it will invoke the window as if `sticky-scroll--max-win
 Uses an indentation approach, to find offscreen lines that are levels of indentation lower than the current point.
 
 This works surprising well and quickly.
-
-
-## Known bugs
-
-The sticky window disappears if you move to a 0-indent line that is within some indentation scope. Working on it.
