@@ -50,9 +50,10 @@ window at the top of the `sticky-scroll-mode' window."
       (progn
         (add-hook 'post-command-hook #'sticky-scroll--should-rerun)
         (add-hook 'kill-buffer-hook #'sticky-scroll-close-buffer)
-        (add-hook 'pre-command-hook #'sticky-scroll--pre-command-hook))
+        (add-hook 'post-command-hook #'sticky-scroll--post-command-hook))
     (sticky-scroll-close-buffer)
     (remove-hook 'post-command-hook #'sticky-scroll--should-rerun)
+    (remove-hook 'post-command-hook #'sticky-scroll--post-command-hook)
     (remove-hook 'kill-buffer-hook #'sticky-scroll-close-buffer)))
 
 (defgroup sticky-scroll nil
@@ -212,14 +213,19 @@ those lines. Only find at most one item at each indentation level."
   "Close the current buffer's sticky window, or `(cdr CELL)'.
 If not found or already closed, do nothing."
   (if-let ((buf-list (or cell (assoc (current-buffer) sticky-scroll--buffer-alist))))
+      ;; for the post-command-hook, sometimes the minibuffer is accepting input
+      ;; so we need to restore that
       (progn
-        ;; kill the buffer and the window
-        (setq sticky-scroll--buffer-alist
-              (assoc-delete-all (car buf-list) sticky-scroll--buffer-alist))
-        (unwind-protect ; in case the user has deleted the buffer on their own
-            (if-let ((w (get-buffer-window (cdr buf-list))))
-                (quit-window t w)
-              (kill-buffer (cdr buf-list)))))))
+        (save-excursion
+          ;; kill the buffer and the window
+          (setq sticky-scroll--buffer-alist
+                (assoc-delete-all (car buf-list) sticky-scroll--buffer-alist))
+          (unwind-protect ; in case the user has deleted the buffer on their own
+              (if-let ((w (get-buffer-window (cdr buf-list))))
+                  (quit-window t w)
+                (kill-buffer (cdr buf-list)))))
+        (if-let (w (active-minibuffer-window))
+            (select-window w)))))
 
 (defvar sticky-scroll--last-line 0) ;; local var for lines
 (make-variable-buffer-local 'sticky-scroll--last-line)
@@ -237,12 +243,13 @@ If not found or already closed, do nothing."
             (setq-local sticky-scroll--last-line line))))
     (sticky-scroll-close-buffer)))
 
-(defun sticky-scroll--pre-command-hook ()
-  "If we are going to swap buffers, go ahead and close the sticky window first."
-  (when (or
-         (eq this-command #'previous-buffer)
-         (eq this-command #'next-buffer))
-    (sticky-scroll-close-buffer)))
+(defun sticky-scroll--post-command-hook ()
+  "If we've changed buffers through any means, close the sticky window."
+  (while-no-input
+    (dolist (cell sticky-scroll--buffer-alist)
+      (let ((buf (car cell)))
+        (unless (get-buffer-window buf)
+          (sticky-scroll-close-buffer cell))))))
 
 (provide 'sticky-scroll-mode)
 ;;; sticky-scroll-mode.el ends here
